@@ -5,7 +5,6 @@ import (
 	"fmt"
 	stdlog "log"
 
-	"github.com/Giantmen/hedge/api"
 	"github.com/Giantmen/hedge/config"
 	"github.com/Giantmen/hedge/judge"
 	"github.com/Giantmen/hedge/log"
@@ -44,14 +43,17 @@ func main() {
 	if err != nil {
 		log.Error("NewService err", err)
 	}
-	api.Register(bourse)
+	gozilla.RegisterService(bourse, "trader")
+	log.Debug("register", "bourse")
 
 	rule, err := judge.NewJudge(&cfg, bourse)
 	if err != nil {
 		panic(fmt.Sprintf("NewJudge err %v", err))
 	}
-	rule.Start()
-	defer rule.Stop()
+	gozilla.RegisterService(rule, "judge")
+	log.Debug("register", "judge")
+	rule.Process()
+	defer rule.StopAll()
 
 	gozilla.DefaultLogOpt.Format += " {{.Body}}"
 	stdlog.Fatal(gozilla.ListenAndServe(cfg.Listen))

@@ -8,11 +8,14 @@ type Server struct {
 }
 
 type Judge struct {
-	Name   string
-	Bourse []string
-	Ticker int
-	Profit string
-	Huidu  bool
+	Name      string
+	Bourse    []string
+	Ticker    int
+	Depth     string
+	Amount    string
+	Rightearn string
+	Leftearn  string
+	Huidu     bool
 }
 
 type Config struct {
