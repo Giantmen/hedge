@@ -70,18 +70,19 @@ func (s *Service) GetAccount(ctx *gozilla.Context, r *proto.AccountQuery) (*prot
 		log.Error("GetAccount err", err)
 		return nil, err
 	}
-	var Accounts = make(map[string]proto.SubAccount)
-	for _, currency := range r.Accounts {
-		if sub, ok := account.SubAccounts[currency]; ok {
-			Accounts[currency] = sub
-		} else {
-			log.Error("can not find", currency)
-		}
-	}
+	//var Accounts = make(map[string]proto.SubAccount)
+	// for _, currency := range r.Accounts {
+	// 	if sub, ok := account.SubAccounts[currency]; ok {
+	// 		Accounts[currency] = sub
+	// 	} else {
+	// 		log.Error("can not find", currency)
+	// 	}
+	// }
+	log.Debug("in here")
 	return &proto.AccountReply{
 		Bourse:   account.Bourse,
 		Asset:    account.Asset,
-		Accounts: Accounts,
+		Accounts: account.SubAccounts,
 	}, nil
 }
 

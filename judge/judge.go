@@ -13,8 +13,9 @@ import (
 )
 
 type Processer interface {
-	Process()
-	Stop()
+	Process() error
+	Stop() error
+	Status() bool
 	SetHuidu(huidu bool) bool
 	SetDepth(depth float64) float64
 	SetAmount(amount float64) float64
@@ -67,8 +68,13 @@ func (j *Judge) Start(ctx *gozilla.Context, r *proto.JudgeQuery) (string, error)
 		log.Errorf("get %s err", r.Judge)
 		return "", fmt.Errorf("get %s err", r.Judge)
 	}
-	go ju.Process()
-	return fmt.Sprintf("judge:%s start ok", r.Judge), nil
+	if ju.Status() {
+		log.Errorf("%s is already start", r.Judge)
+		return "", fmt.Errorf("%s is already start", r.Judge)
+	} else {
+		go ju.Process()
+		return fmt.Sprintf("judge:%s start ok", r.Judge), nil
+	}
 }
 
 func (j *Judge) Stop(ctx *gozilla.Context, r *proto.JudgeQuery) (string, error) {
@@ -77,8 +83,22 @@ func (j *Judge) Stop(ctx *gozilla.Context, r *proto.JudgeQuery) (string, error) 
 		log.Errorf("get %s err", r.Judge)
 		return "", fmt.Errorf("get %s err", r.Judge)
 	}
-	go ju.Stop()
-	return fmt.Sprintf("judge:%s stop ok", r.Judge), nil
+	if !ju.Status() {
+		log.Errorf("%s is already stop", r.Judge)
+		return "", fmt.Errorf("%s is already stop", r.Judge)
+	} else {
+		go ju.Stop()
+		return fmt.Sprintf("judge:%s stop ok", r.Judge), nil
+	}
+}
+
+func (j *Judge) Status(ctx *gozilla.Context, r *proto.JudgeQuery) (bool, error) {
+	ju, ok := j.judges[strings.ToUpper(r.Judge)]
+	if !ok {
+		log.Errorf("get %s err", r.Judge)
+		return false, fmt.Errorf("get %s err", r.Judge)
+	}
+	return ju.Status(), nil
 }
 
 func (j *Judge) SetHuidu(ctx *gozilla.Context, r *proto.HuiduQuery) (bool, error) {

@@ -28,6 +28,7 @@ type EtcChBtctrade struct {
 	ticker    int
 	loop      *time.Ticker
 	stop      chan struct{}
+	status    bool //程序开关
 	btctrade  account
 	chbtc     account
 }
@@ -95,7 +96,14 @@ func NewEtcChBtctrade(cfg *config.Judge, sr *store.Service) (*EtcChBtctrade, err
 	}, nil
 }
 
-func (j *EtcChBtctrade) Process() {
+func (j *EtcChBtctrade) Process() error {
+	if !j.status {
+		j.status = true
+		log.Debug("process start")
+	} else {
+		return fmt.Errorf("%s is already start", j.name)
+	}
+
 	j.getAccount()
 	log.Infof("account btctrade cny:%f etc:%f", j.btctrade.cny, j.btctrade.etc)
 	log.Infof("account chbtc cny:%f etc:%f", j.chbtc.cny, j.chbtc.etc)
@@ -112,7 +120,7 @@ func (j *EtcChBtctrade) Process() {
 			log.Infof("account chbtc cny:%f etc:%f", j.chbtc.cny, j.chbtc.etc)
 		case <-j.stop:
 			log.Info("process stop!")
-			return
+			return nil
 		}
 	}
 }
@@ -338,10 +346,15 @@ func (j *EtcChBtctrade) getDepth(bou bourse.Bourse, depth float64) *proto.Price 
 	return price
 }
 
-func (j *EtcChBtctrade) Stop() {
-	//j.loop.Stop()
+func (j *EtcChBtctrade) Stop() error {
+	if j.status {
+		j.status = false
+	} else {
+		return fmt.Errorf("%s is already stop", j.name)
+	}
 	j.stop <- struct{}{}
 	log.Infof("stop judge:%s ok", j.name)
+	return nil
 }
 
 func (j *EtcChBtctrade) SetHuidu(huidu bool) bool {
@@ -389,4 +402,8 @@ func (j *EtcChBtctrade) GetConfig() *mypro.ConfigReply {
 		RightEarn: j.rightEarn,
 		LeftEarn:  j.leftEarn,
 	}
+}
+
+func (j *EtcChBtctrade) Status() bool {
+	return j.status
 }
