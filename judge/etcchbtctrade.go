@@ -99,7 +99,7 @@ func NewEtcChBtctrade(cfg *config.Judge, sr *store.Service) (*EtcChBtctrade, err
 func (j *EtcChBtctrade) Process() error {
 	if !j.status {
 		j.status = true
-		log.Debug("process start")
+		log.Info("process start")
 	} else {
 		return fmt.Errorf("%s is already start", j.name)
 	}
@@ -192,9 +192,9 @@ func (j *EtcChBtctrade) judge() {
 
 func (j *EtcChBtctrade) checkAccount(sellSide, buySide account, priceS, pirceB *proto.Price, amount string) error {
 	num, _ := strconv.ParseFloat(amount, 64)
-	if sellSide.etc < num+1 {
+	if sellSide.etc < num*2 {
 		return fmt.Errorf("%s:etc余额不足:%f cny:%f", sellSide.name, sellSide.etc, sellSide.cny)
-	} else if buySide.cny < (pirceB.Sell * (num + 1)) {
+	} else if buySide.cny < (pirceB.Sell * (num * 2)) {
 		return fmt.Errorf("%s:cny余额不足:%f etc:%f", buySide.name, buySide.cny, buySide.etc)
 	}
 	return nil
@@ -210,7 +210,7 @@ func (j *EtcChBtctrade) hedging(sellSide, buySide account, priceS, pirceB *proto
 	if err != nil {
 		return 0, fmt.Errorf("%s:%s %v", sellSide.name, proto.SELL, err)
 	}
-	log.Info("sell", priceS.Buy, amount, order, order.OrderID, order.Status)
+	log.Info("sell", sellSide.name, priceS.Buy, amount, order, order.OrderID, order.Status)
 
 	//buy
 	order, err = j.deal(buySide.bourse, proto.BUY, amount, fmt.Sprintf("%f", pirceB.Sell))
@@ -218,18 +218,21 @@ func (j *EtcChBtctrade) hedging(sellSide, buySide account, priceS, pirceB *proto
 	if err != nil {
 		log.Error(err)
 		buyprice = priceS.Buy*(1-sellSide.fee_etc) - pirceB.Sell*buySide.fee_etc //挂单价格=卖出的价格-手续费
-		log.Debug("buyprice", buyprice, "=", priceS.Buy, "*(1-", sellSide.fee_etc, ")", pirceB.Sell, "*", buySide.fee_etc)
+		log.Debug("buyprice", buyprice, "=", priceS.Buy, "*(1-", sellSide.fee_etc, ")-", pirceB.Sell, "*", buySide.fee_etc)
 		if order, err = j.retryBuy(buySide.bourse, proto.BUY, amount, fmt.Sprintf("%f", buyprice)); err != nil {
 			return 0, err //重试失败
 		}
 		log.Info(sellSide.name, "buy retry ok")
 	}
-	log.Info("buy:", buyprice, amount, order, order.OrderID, order.Status)
+	log.Info("buy:", buySide.name, buyprice, amount, order, order.OrderID, order.Status)
 	return mypro.Earn(priceS.Buy, sellSide.fee_etc, pirceB.Sell, buySide.fee_etc), nil
 }
 
 func (j *EtcChBtctrade) retryBuy(bou bourse.Bourse, side, amount, price string) (*proto.Order, error) {
 	sec := rand.Intn(10)
+	if sec == 0 {
+		sec = 1
+	}
 	for {
 		if order, err := j.deal(bou, side, amount, price); err == nil {
 			return order, err
@@ -261,16 +264,16 @@ func (j *EtcChBtctrade) deal(bou bourse.Bourse, side, amount, price string) (*pr
 			return nil, err
 		}
 	}
-	return j.checkOrder(bou, order.OrderID, order.Currency)
+	return j.checkOrder(bou, side, order.OrderID, order.Currency)
 }
 
-func (j *EtcChBtctrade) checkOrder(bou bourse.Bourse, orderId, currencyPair string) (*proto.Order, error) {
+func (j *EtcChBtctrade) checkOrder(bou bourse.Bourse, side, orderId, currencyPair string) (*proto.Order, error) {
 	sec := 50
 	for {
 		if order, err := bou.GetOneOrder(orderId, currencyPair); err != nil || order.Status == proto.ORDER_UNFINISH {
-			log.Error("retry check", orderId, order.Status, err)
+			log.Error("retry check", side, orderId, order.Status, err)
 		} else {
-			log.Debug("retry check ok!")
+			log.Debugf("retry check %s ok!", side)
 			return order, err
 		}
 		log.Debug("checkOrder sleep:", sec)
@@ -278,11 +281,11 @@ func (j *EtcChBtctrade) checkOrder(bou bourse.Bourse, orderId, currencyPair stri
 		sec = sec << 1
 		if sec > 500 { //150 50 150 100 150 200 150 400  = 800ms
 			if order, err := j.cancelOrder(bou, orderId, currencyPair); err != nil {
-				return nil, fmt.Errorf("%s retry check & cancel err", orderId)
+				return nil, fmt.Errorf("%s %s retry check & cancel err", side, orderId)
 			} else if order != nil {
 				return order, nil
 			} else {
-				return nil, fmt.Errorf("%s retry check err & cancel ok", orderId)
+				return nil, fmt.Errorf("%s %s retry check err & cancel ok", side, orderId)
 			}
 		}
 	}
