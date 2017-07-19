@@ -15,9 +15,10 @@ const (
 	Chbtc_btc
 	Chbtc_ltc
 
-	Chbtc_etc = 0.0005
-	Huobi_etc //7月13日12:00-7月16日12:00 0.01%
+	Huobi_etc = 0.0005 //7月13日12:00-7月16日12:00 0.01%
 	Yunbi_btc
+
+	Chbtc_etc = 0.00046
 
 	Yunbi_etc = 0.001
 	Btctrade_etc

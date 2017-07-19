@@ -78,7 +78,6 @@ func (s *Service) GetAccount(ctx *gozilla.Context, r *proto.AccountQuery) (*prot
 	// 		log.Error("can not find", currency)
 	// 	}
 	// }
-	log.Debug("in here")
 	return &proto.AccountReply{
 		Bourse:   account.Bourse,
 		Asset:    account.Asset,
