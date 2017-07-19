@@ -1,5 +1,11 @@
 package proto
 
+import (
+	"strings"
+
+	"github.com/Giantmen/trader/proto"
+)
+
 const (
 	Huobi    = "Huobi"
 	Huobi_2  = "Huobi2"
@@ -10,6 +16,8 @@ const (
 
 //手续费
 const (
+	CNY = "cny"
+
 	Huobi_btc = 0.002
 	Huobi_ltc
 	Chbtc_btc
@@ -29,16 +37,34 @@ func Earn(sell, fsell, buy, fbuy float64) float64 {
 }
 
 func ConvertFee(brouse string) float64 {
-	switch brouse {
-	case "Huobi_btc", "Huobi_ltc", "Chbtc_btc", "Chbtc_ltc":
+	switch strings.ToLower(brouse) {
+	case "huobi_btc", "huobi_ltc", "chbtc_btc", "chbtc_ltc":
 		return 0.002
-	case "Chbtc_etc", "Huobi_etc", "Yunbi_btc":
+	case "huobi_etc", "yunbi_btc":
 		return 0.0005
-	case "Yunbi_etc", "Btctrade_etc":
+	case "chbtc_etc":
+		return 0.00046
+	case "yunbi_etc", "btctrade_etc":
 		return 0.001
 	default:
 		return 0
 	}
+}
+
+func ConvertCurrencyPair(currency string) string {
+	switch currency {
+	case proto.BTC:
+		return proto.BTC_CNY
+	case proto.LTC:
+		return proto.LTC_CNY
+	case proto.ETH:
+		return proto.ETH_CNY
+	case proto.ETC:
+		return proto.ETC_CNY
+	case proto.EOS:
+		return proto.EOS_CNY
+	}
+	return ""
 }
 
 type HuiduQuery struct {
