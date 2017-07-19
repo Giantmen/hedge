@@ -35,6 +35,7 @@ type Hedge struct {
 	loop      *time.Ticker
 	stop      chan struct{}
 	status    bool    //程序开关
+	first     string  //优先级
 	bourseA   account //btctrade //////////////////
 	bourseB   account //chbtc
 }
@@ -99,6 +100,7 @@ func NewHedge(cfg *config.Judge, sr *store.Service) (*Hedge, error) {
 		ticker:    cfg.Ticker,
 		loop:      time.NewTicker(time.Second * time.Duration(cfg.Ticker)),
 		stop:      make(chan struct{}),
+		first:     bourseNameA,
 		bourseA: account{
 			name:   bourseNameA,
 			bourse: bourseA,
@@ -253,25 +255,50 @@ func (h *Hedge) hedging(sellSide, buySide account, priceA, priceB *proto.Price, 
 		log.Debug("huidu on")
 		return 0, nil
 	}
-	//sell
-	order, err := h.deal(sellSide.bourse, proto.SELL, fmt.Sprintf("%v", amount), fmt.Sprintf("%f", priceA.Buy*0.5))
-	if err != nil {
-		return 0, fmt.Errorf("%s:%s %v", sellSide.name, proto.SELL, err)
-	}
-	log.Info("sell", sellSide.name, priceA.Buy, amount, order, order.OrderID, order.Status)
-
-	//buy
-	//buyprice := priceA.Buy*(1-sellSide.fee_etc) - pirceB.Sell*buySide.fee_etc //挂单价格=卖出的价格-手续费
-	//log.Debug("buyprice", buyprice, "=", priceA.Buy, "*(1-", sellSide.fee_etc, ")-", pirceB.Sell, "*", buySide.fee_etc)
-	order, err = h.deal(buySide.bourse, proto.BUY, fmt.Sprintf("%v", amount*(1+buySide.fee)), fmt.Sprintf("%f", priceB.Sell*1.5))
-	if err != nil {
-		log.Error(err)
-		if order, err = h.retryBuy(buySide.bourse, proto.BUY, fmt.Sprintf("%v", amount*(1+buySide.fee)), fmt.Sprintf("%f", priceB.Sell*1.5)); err != nil {
-			return 0, err //重试失败
+	if sellSide.name == h.first {
+		//sell
+		order, err := h.deal(sellSide.bourse, proto.SELL, fmt.Sprintf("%v", amount), fmt.Sprintf("%f", priceA.Buy*0.5))
+		if err != nil {
+			return 0, fmt.Errorf("%s:%s %v", sellSide.name, proto.SELL, err)
 		}
-		log.Info(buySide.name, "buy retry ok")
+		log.Info("sell", sellSide.name, priceA.Buy, amount, order, order.OrderID, order.Status)
+
+		//buy
+		//buyprice := priceA.Buy*(1-sellSide.fee_etc) - pirceB.Sell*buySide.fee_etc //挂单价格=卖出的价格-手续费
+		//log.Debug("buyprice", buyprice, "=", priceA.Buy, "*(1-", sellSide.fee_etc, ")-", pirceB.Sell, "*", buySide.fee_etc)
+		order, err = h.deal(buySide.bourse, proto.BUY, fmt.Sprintf("%v", amount*(1+buySide.fee)), fmt.Sprintf("%f", priceB.Sell*1.5))
+		if err != nil {
+			log.Error(err)
+			if order, err = h.retryBuy(buySide.bourse, proto.BUY, fmt.Sprintf("%v", amount*(1+buySide.fee)), fmt.Sprintf("%f", priceB.Sell*1.5)); err != nil {
+				return 0, err //重试失败
+			}
+			log.Info(buySide.name, "buy retry ok")
+		}
+		log.Info("buy:", buySide.name, priceB.Sell, amount, order, order.OrderID, order.Status)
 	}
-	log.Info("buy:", buySide.name, priceB.Sell, amount, order, order.OrderID, order.Status)
+
+	if buySide.name == h.first {
+		//buy
+		//buyprice := priceA.Buy*(1-sellSide.fee_etc) - pirceB.Sell*buySide.fee_etc //挂单价格=卖出的价格-手续费
+		//log.Debug("buyprice", buyprice, "=", priceA.Buy, "*(1-", sellSide.fee_etc, ")-", pirceB.Sell, "*", buySide.fee_etc)
+		order, err := h.deal(buySide.bourse, proto.BUY, fmt.Sprintf("%v", amount*(1+buySide.fee)), fmt.Sprintf("%f", priceB.Sell*1.5))
+		if err != nil {
+			log.Error(err)
+			if order, err = h.retryBuy(buySide.bourse, proto.BUY, fmt.Sprintf("%v", amount*(1+buySide.fee)), fmt.Sprintf("%f", priceB.Sell*1.5)); err != nil {
+				return 0, err //重试失败
+			}
+			log.Info(buySide.name, "buy retry ok")
+		}
+		log.Info("buy:", buySide.name, priceB.Sell, amount, order, order.OrderID, order.Status)
+
+		//sell
+		order, err = h.deal(sellSide.bourse, proto.SELL, fmt.Sprintf("%v", amount), fmt.Sprintf("%f", priceA.Buy*0.5))
+		if err != nil {
+			return 0, fmt.Errorf("%s:%s %v", sellSide.name, proto.SELL, err)
+		}
+		log.Info("sell", sellSide.name, priceA.Buy, amount, order, order.OrderID, order.Status)
+	}
+
 	return mypro.Earn(priceA.Buy, sellSide.fee, priceB.Sell, buySide.fee), nil
 }
 
@@ -363,9 +390,16 @@ func (h *Hedge) SetTicker(ticker int) string {
 	return fmt.Sprintf("ticker set %d/s ok", ticker)
 }
 
+func (h *Hedge) SetFirst(first string) string {
+	h.first = strings.ToLower(first)
+	log.Infof("set judge:%s first:%v ok", h.name, first)
+	return fmt.Sprintf("first set %s ok", first)
+}
+
 func (h *Hedge) GetConfig() *mypro.ConfigReply {
 	return &mypro.ConfigReply{
 		Ticker:    h.ticker,
+		First:     h.first,
 		Huidu:     h.huidu,
 		Depth:     h.depth,
 		Amount:    h.amount,

@@ -77,12 +77,18 @@ type ConfigQuery struct {
 	Value float64 `validate:"required" json:"value"`
 }
 
+type FirstQuery struct {
+	Judge string `validate:"required" json:"judge"`
+	Value string `validate:"required" json:"value"`
+}
+
 type JudgeQuery struct {
 	Judge string `validate:"required" json:"judge"`
 }
 
 type ConfigReply struct {
 	Ticker    int
+	First     string
 	Huidu     bool
 	Depth     float64
 	Amount    float64

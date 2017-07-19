@@ -22,6 +22,7 @@ type Processer interface {
 	SetRightEarn(rightEarn float64) float64
 	SetLeftEarn(leftEarn float64) float64
 	SetTicker(ticker int) string
+	SetFirst(first string) string
 	GetConfig() *proto.ConfigReply
 }
 
@@ -39,12 +40,12 @@ func NewJudge(cfg *config.Config, sr *store.Service) (*Judge, error) {
 			} else {
 				judges[strings.ToUpper(c.Name)] = etc_btctrade_chbtc
 			}
-		case "eth_btctrade_chbtc": //策略name
-			if eth_btctrade_chbtc, err := NewHedge(&c, sr); err != nil {
-				return nil, err
-			} else {
-				judges[strings.ToUpper(c.Name)] = eth_btctrade_chbtc
-			}
+			// case "eth_btctrade_chbtc": //策略name
+			// 	if eth_btctrade_chbtc, err := NewHedge(&c, sr); err != nil {
+			// 		return nil, err
+			// 	} else {
+			// 		judges[strings.ToUpper(c.Name)] = eth_btctrade_chbtc
+			// 	}
 		}
 	}
 
@@ -162,6 +163,15 @@ func (j *Judge) SetTicker(ctx *gozilla.Context, r *proto.ConfigQuery) (string, e
 		return "", fmt.Errorf("set ticker err %v < 1", r.Value)
 	}
 	return ju.SetTicker(int(r.Value)), nil
+}
+
+func (j *Judge) SetFirst(ctx *gozilla.Context, r *proto.FirstQuery) (string, error) {
+	ju, ok := j.judges[strings.ToUpper(r.Judge)]
+	if !ok {
+		log.Errorf("get %s err", r.Judge)
+		return "", fmt.Errorf("get %s err", r.Judge)
+	}
+	return ju.SetFirst(r.Value), nil
 }
 
 func (j *Judge) GetConfig(ctx *gozilla.Context, r *proto.JudgeQuery) (*proto.ConfigReply, error) {
