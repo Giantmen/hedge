@@ -25,8 +25,10 @@ const (
 
 	Huobi_etc = 0.0005 //7月13日12:00-7月16日12:00 0.01%
 	Yunbi_btc
+	Btctrade_eth
 
 	Chbtc_etc = 0.00046
+	Chbtc_eth
 
 	Yunbi_etc = 0.001
 	Btctrade_etc
@@ -40,9 +42,9 @@ func ConvertFee(brouse string) float64 {
 	switch strings.ToLower(brouse) {
 	case "huobi_btc", "huobi_ltc", "chbtc_btc", "chbtc_ltc":
 		return 0.002
-	case "huobi_etc", "yunbi_btc":
+	case "huobi_etc", "yunbi_btc", "btctrade_eth":
 		return 0.0005
-	case "chbtc_etc":
+	case "chbtc_etc", "chbtc_eth":
 		return 0.00046
 	case "yunbi_etc", "btctrade_etc":
 		return 0.001

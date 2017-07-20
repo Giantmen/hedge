@@ -40,12 +40,12 @@ func NewJudge(cfg *config.Config, sr *store.Service) (*Judge, error) {
 			} else {
 				judges[strings.ToUpper(c.Name)] = etc_btctrade_chbtc
 			}
-			// case "eth_btctrade_chbtc": //策略name
-			// 	if eth_btctrade_chbtc, err := NewHedge(&c, sr); err != nil {
-			// 		return nil, err
-			// 	} else {
-			// 		judges[strings.ToUpper(c.Name)] = eth_btctrade_chbtc
-			// 	}
+		case "eth_btctrade_chbtc":
+			if eth_btctrade_chbtc, err := NewHedge(&c, sr); err != nil {
+				return nil, err
+			} else {
+				judges[strings.ToUpper(c.Name)] = eth_btctrade_chbtc
+			}
 		}
 	}
 

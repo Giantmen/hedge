@@ -2,6 +2,7 @@ package config
 
 type Server struct {
 	Name      string
+	Accountid string
 	Accesskey string
 	Secretkey string
 	Timeout   int

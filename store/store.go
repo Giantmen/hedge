@@ -11,6 +11,7 @@ import (
 	"github.com/Giantmen/trader/bourse"
 	"github.com/Giantmen/trader/bourse/btctrade"
 	"github.com/Giantmen/trader/bourse/chbtc"
+	"github.com/Giantmen/trader/bourse/huobi"
 	"github.com/Giantmen/trader/bourse/yunbi"
 	"github.com/Giantmen/trader/proto"
 )
@@ -42,6 +43,14 @@ func NewService(cfg *config.Config) (*Service, error) {
 			return nil, err
 		} else {
 			bourses[strings.ToUpper(c.Name)] = btctrade
+		}
+	}
+
+	for _, c := range cfg.Huobi {
+		if huobi, err := huobi.NewHuobi(c.Accountid, c.Accesskey, c.Secretkey, c.Timeout); err != nil {
+			return nil, err
+		} else {
+			bourses[strings.ToUpper(c.Name)] = huobi
 		}
 	}
 
