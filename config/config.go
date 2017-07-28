@@ -28,8 +28,10 @@ type Config struct {
 
 	Chbtc    []Server
 	Yunbi    []Server
-	Huobi    []Server
+	HuobiN   []Server
+	HuobiO   []Server
 	Btctrade []Server
+	Bter     []Server
 
 	Judge []Judge
 }

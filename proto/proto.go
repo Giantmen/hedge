@@ -7,33 +7,7 @@ import (
 )
 
 const (
-	Huobi    = "Huobi"
-	Huobi_2  = "Huobi2"
-	Chbtc    = "Chbtc"
-	Yunbi    = "Yunbi"
-	Btctrade = "Btctrade"
-)
-
-//手续费
-const (
 	CNY = "cny"
-
-	Huobi_btc = 0.002
-	Huobi_ltc
-	Chbtc_btc
-	Chbtc_ltc
-
-	Yunbi_btc = 0.0005 //7月13日12:00-7月16日12:00 0.01%
-	Btctrade_eth
-
-	Chbtc_etc = 0.00046
-	Chbtc_eth
-
-	Yunbi_etc = 0.001
-	Yunbi_eth
-	Btctrade_etc
-	Huobi_etc
-	Huobi_eth
 )
 
 func Earn(sell, fsell, buy, fbuy float64) float64 {
@@ -48,7 +22,9 @@ func ConvertFee(brouse string) float64 {
 		return 0.0005
 	case "chbtc_etc", "chbtc_eth":
 		return 0.00046
-	case "yunbi_etc", "yunbi_eth", "btctrade_etc", "huobi_etc", "huobi_eth":
+	case "bter_snt":
+		return 0.0016
+	case "yunbi_etc", "yunbi_eth", "yunbi_snt", "btctrade_etc", "huobi_etc", "huobi_eth":
 		return 0.001
 	default:
 		return 0
@@ -67,6 +43,8 @@ func ConvertCurrencyPair(currency string) string {
 		return proto.ETC_CNY
 	case proto.EOS:
 		return proto.EOS_CNY
+	case proto.SNT:
+		return proto.SNT_CNY
 	}
 	return ""
 }

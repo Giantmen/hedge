@@ -117,14 +117,14 @@ func NewHedge(cfg *config.Judge, sr *store.Service) (*Hedge, error) {
 func (h *Hedge) Process() error {
 	if !h.status {
 		h.status = true
-		log.Info("process start")
+		log.Infof("%s process start", h.name)
 	} else {
 		return fmt.Errorf("%s is already start", h.name)
 	}
 
 	h.getAccount()
-	log.Infof("account btctrade cny:%f %s:%f", h.bourseA.cny, h.coin, h.bourseA.coin)
-	log.Infof("account chbtc cny:%f %s:%f", h.bourseB.cny, h.coin, h.bourseB.coin)
+	log.Infof("account %s cny:%f %s:%f", h.bourseA.name, h.bourseA.cny, h.coin, h.bourseA.coin)
+	log.Infof("account %s cny:%f %s:%f", h.bourseB.name, h.bourseB.cny, h.coin, h.bourseB.coin)
 	var accounter = time.NewTicker(time.Second * 100)
 	defer accounter.Stop()
 	for {
@@ -134,10 +134,10 @@ func (h *Hedge) Process() error {
 			h.judge()
 
 		case <-accounter.C:
-			log.Infof("account btctrade cny:%f %s:%f", h.bourseA.cny, h.coin, h.bourseA.coin)
-			log.Infof("account chbtc cny:%f %s:%f", h.bourseB.cny, h.coin, h.bourseB.coin)
+			log.Infof("account %s cny:%f %s:%f", h.bourseA.name, h.bourseA.cny, h.coin, h.bourseA.coin)
+			log.Infof("account %s cny:%f %s:%f", h.bourseB.name, h.bourseB.cny, h.coin, h.bourseB.coin)
 		case <-h.stop:
-			log.Info("process stop!")
+			log.Infof("%s process stop!", h.name)
 			return nil
 		}
 	}
@@ -152,59 +152,55 @@ func (h *Hedge) judge() {
 	if profit := mypro.Earn(priceA.Buy, h.bourseA.fee, priceB.Sell, h.bourseB.fee); profit > h.rightEarn {
 		if err := h.checkAccount(h.bourseA, h.bourseB, priceB, h.amount); err != nil {
 			if h.right { //左边搬空 且向右开关开的
-				log.Errorf("停止交易: %s -> %s %v", h.bourseA.name, h.bourseB.name, err)
+				log.Errorf("%s 停止交易: %s -> %s %v", strings.ToUpper(h.coin), h.bourseA.name, h.bourseB.name, err)
 				h.right = false
 				return
 			} else { //且向右开关关的
-				log.Debugf("禁止交易:%s -> %s %v", h.bourseA.name, h.bourseB.name, err)
+				log.Debugf("%s 禁止交易:%s -> %s %v", strings.ToUpper(h.coin), h.bourseA.name, h.bourseB.name, err)
 				log.Info("profit:", fmt.Sprintf("%0.4f", profit*h.amount), strings.ToUpper(h.bourseA.name), "sell:", priceA.Buy, strings.ToUpper(h.bourseB.name), "buy:", priceB.Sell)
 				return
 			}
 		} else if !h.right { //仓位正常 且向右开关关的
 			h.right = true
-			log.Infof("恢复交易:  %s -> %s", h.bourseA.name, h.bourseB.name)
+			log.Infof("%s 恢复交易:  %s -> %s", strings.ToUpper(h.coin), h.bourseA.name, h.bourseB.name)
 		}
 
 		earn, err := h.hedging(h.bourseA, h.bourseB, priceA, priceB, h.amount)
 		if err == nil {
 			if h.huidu {
-				log.Info("profit:", fmt.Sprintf("%0.4f", profit*h.amount), strings.ToUpper(h.bourseA.name), "sell:", priceA.Buy, strings.ToUpper(h.bourseB.name), "buy:", priceB.Sell)
+				log.Info(strings.ToUpper(h.coin), "profit:", fmt.Sprintf("%0.4f", profit*h.amount), strings.ToUpper(h.bourseA.name), "sell:", priceA.Buy, strings.ToUpper(h.bourseB.name), "buy:", priceB.Sell)
 			} else {
-				log.Debug("profit:", fmt.Sprintf("%0.4f", profit*h.amount), strings.ToUpper(h.bourseA.name), "sell:", priceA.Buy, strings.ToUpper(h.bourseB.name), "buy:", priceB.Sell)
-				log.Info("earn:", fmt.Sprintf("%0.4f", earn*h.amount), strings.ToUpper(h.bourseA.name), "sell:", priceA.Buy, strings.ToUpper(h.bourseB.name), "buy:", priceB.Sell)
+				log.Info(strings.ToUpper(h.coin), "earn:", fmt.Sprintf("%0.4f", earn*h.amount), strings.ToUpper(h.bourseA.name), "sell:", priceA.Buy, strings.ToUpper(h.bourseB.name), "buy:", priceB.Sell)
 			}
 		} else {
-			log.Error("hedging err", err)
+			log.Error(strings.ToUpper(h.coin), "hedging err", err)
 		}
-		//balance += amount
 	} else if profit := mypro.Earn(priceB.Buy, h.bourseB.fee, priceA.Sell, h.bourseA.fee); profit > h.leftEarn {
 		if err := h.checkAccount(h.bourseB, h.bourseA, priceA, h.amount); err != nil {
 			if h.left { //右边搬空 且向左开关开的
-				log.Errorf("停止交易: %s -> %s %v", h.bourseB.name, h.bourseA.name, err)
+				log.Errorf("%s 停止交易: %s -> %s %v", strings.ToUpper(h.coin), h.bourseB.name, h.bourseA.name, err)
 				h.left = false
 				return
 			} else { //且向左开关关的
-				log.Debugf("禁止交易:%s -> %s %v", h.bourseB.name, h.bourseA.name, err)
-				log.Info("profit:", fmt.Sprintf("%0.4f", profit*h.amount), h.bourseB.name, "sell:", priceB.Buy, h.bourseA.name, "buy:", priceA.Sell)
+				log.Debugf("%s 禁止交易:%s -> %s %v", strings.ToUpper(h.coin), h.bourseB.name, h.bourseA.name, err)
+				log.Info(strings.ToUpper(h.coin), "profit:", fmt.Sprintf("%0.4f", profit*h.amount), h.bourseB.name, "sell:", priceB.Buy, h.bourseA.name, "buy:", priceA.Sell)
 				return
 			}
 		} else if h.left { //仓位正常 且向左开关关的
 			h.left = true
-			log.Errorf("恢复交易:  %s -> %s", h.bourseB.name, h.bourseA.name)
+			log.Errorf("%s 恢复交易:  %s -> %s", strings.ToUpper(h.coin), h.bourseB.name, h.bourseA.name)
 		}
 
 		earn, err := h.hedging(h.bourseB, h.bourseA, priceB, priceA, h.amount)
 		if err == nil {
 			if h.huidu {
-				log.Info("profit:", fmt.Sprintf("%0.4f", profit*h.amount), strings.ToUpper(h.bourseB.name), "sell:", priceB.Buy, strings.ToUpper(h.bourseA.name), "buy:", priceA.Sell)
+				log.Info(strings.ToUpper(h.coin), "profit:", fmt.Sprintf("%0.4f", profit*h.amount), strings.ToUpper(h.bourseB.name), "sell:", priceB.Buy, strings.ToUpper(h.bourseA.name), "buy:", priceA.Sell)
 			} else {
-				log.Debug("profit:", fmt.Sprintf("%0.4f", profit*h.amount), strings.ToUpper(h.bourseB.name), "sell:", priceB.Buy, strings.ToUpper(h.bourseA.name), "buy:", priceA.Sell)
-				log.Info("earn:", fmt.Sprintf("%0.4f", earn*h.amount), strings.ToUpper(h.bourseB.name), "sell:", priceB.Buy, strings.ToUpper(h.bourseA.name), "buy:", priceA.Sell)
+				log.Info(strings.ToUpper(h.coin), "earn:", fmt.Sprintf("%0.4f", earn*h.amount), strings.ToUpper(h.bourseB.name), "sell:", priceB.Buy, strings.ToUpper(h.bourseA.name), "buy:", priceA.Sell)
 			}
 		} else {
-			log.Error("hedging err", err)
+			log.Error(strings.ToUpper(h.coin), "hedging err", err)
 		}
-		//balance -= amount
 	}
 }
 
@@ -252,77 +248,70 @@ func (h *Hedge) checkAccount(sellSide, buySide account, pirceB *proto.Price, amo
 
 func (h *Hedge) hedging(sellSide, buySide account, priceA, priceB *proto.Price, amount float64) (float64, error) {
 	if h.huidu {
-		log.Debug("huidu on")
+		log.Debug(strings.ToUpper(h.coin), "huidu on")
 		return 0, nil
 	}
 	if sellSide.name == h.first {
-		//sell
-		order, err := h.deal(sellSide.bourse, proto.SELL, fmt.Sprintf("%v", amount), fmt.Sprintf("%f", priceA.Buy*0.5))
+		order, err := h.sell(sellSide.bourse, amount, priceA.Buy, false)
 		if err != nil {
 			return 0, fmt.Errorf("%s:%s %v", sellSide.name, proto.SELL, err)
 		}
 		log.Info("sell", sellSide.name, priceA.Buy, amount, order, order.OrderID, order.Status)
 
-		//buy
-		//buyprice := priceA.Buy*(1-sellSide.fee_etc) - pirceB.Sell*buySide.fee_etc //挂单价格=卖出的价格-手续费
-		//log.Debug("buyprice", buyprice, "=", priceA.Buy, "*(1-", sellSide.fee_etc, ")-", pirceB.Sell, "*", buySide.fee_etc)
-		order, err = h.deal(buySide.bourse, proto.BUY, fmt.Sprintf("%v", amount*(1+buySide.fee)), fmt.Sprintf("%f", priceB.Sell*1.5))
+		order, err = h.buy(buySide, amount, priceB.Sell, true)
 		if err != nil {
-			log.Error(err)
-			if order, err = h.retryBuy(buySide.bourse, proto.BUY, fmt.Sprintf("%v", amount*(1+buySide.fee)), fmt.Sprintf("%f", priceB.Sell*1.5)); err != nil {
-				return 0, err //重试失败
-			}
-			log.Info(buySide.name, "buy retry ok")
+			return 0, fmt.Errorf("%s:%s %v", buySide.name, proto.BUY, err)
 		}
 		log.Info("buy:", buySide.name, priceB.Sell, amount, order, order.OrderID, order.Status)
 	}
 
 	if buySide.name == h.first {
-		//buy
-		//buyprice := priceA.Buy*(1-sellSide.fee_etc) - pirceB.Sell*buySide.fee_etc //挂单价格=卖出的价格-手续费
-		//log.Debug("buyprice", buyprice, "=", priceA.Buy, "*(1-", sellSide.fee_etc, ")-", pirceB.Sell, "*", buySide.fee_etc)
-		order, err := h.deal(buySide.bourse, proto.BUY, fmt.Sprintf("%v", amount*(1+buySide.fee)), fmt.Sprintf("%f", priceB.Sell*1.5))
+		order, err := h.buy(buySide, amount, priceB.Sell, false)
 		if err != nil {
-			log.Error(err)
-			if order, err = h.retryBuy(buySide.bourse, proto.BUY, fmt.Sprintf("%v", amount*(1+buySide.fee)), fmt.Sprintf("%f", priceB.Sell*1.5)); err != nil {
-				return 0, err //重试失败
-			}
-			log.Info(buySide.name, "buy retry ok")
+			return 0, fmt.Errorf("%s:%s %v", buySide.name, proto.BUY, err)
 		}
-		log.Info("buy:", buySide.name, priceB.Sell, amount, order, order.OrderID, order.Status)
+		log.Info(strings.ToUpper(h.coin), "buy:", buySide.name, priceB.Sell, amount, order, order.OrderID, order.Status)
 
-		//sell
-		order, err = h.deal(sellSide.bourse, proto.SELL, fmt.Sprintf("%v", amount), fmt.Sprintf("%f", priceA.Buy*0.5))
+		order, err = h.sell(sellSide.bourse, amount, priceA.Buy, true)
 		if err != nil {
 			return 0, fmt.Errorf("%s:%s %v", sellSide.name, proto.SELL, err)
 		}
-		log.Info("sell", sellSide.name, priceA.Buy, amount, order, order.OrderID, order.Status)
+		log.Info(strings.ToUpper(h.coin), "sell", sellSide.name, priceA.Buy, amount, order, order.OrderID, order.Status)
 	}
-
 	return mypro.Earn(priceA.Buy, sellSide.fee, priceB.Sell, buySide.fee), nil
 }
 
-func (h *Hedge) deal(bou bourse.Bourse, side, amount, price string) (*proto.Order, error) {
-	var order *proto.Order
-	var err error
-	if side == proto.SELL {
-		order, err = bou.Sell(amount, price, mypro.ConvertCurrencyPair(h.coin))
-		if err != nil {
-			log.Error(err)
-			return nil, err
-		}
-	} else if side == proto.BUY {
-		order, err = bou.Buy(amount, price, mypro.ConvertCurrencyPair(h.coin))
-		if err != nil {
-			log.Error(err)
-			return nil, err
-		}
+func (h *Hedge) buy(bou account, amount, price float64, isRetry bool) (*proto.Order, error) {
+	var amountRate float64
+	if strings.ToLower(bou.name) == strings.ToLower(proto.Bter) { //针对bter
+		amountRate = amount * (1 + bou.fee) / 1.5
+	} else {
+		amountRate = amount * (1 + bou.fee)
 	}
-	return order, nil
-	//return h.checkOrder(bou, side, order.OrderID, order.Currency)
+	order, err := h.deal(bou.bourse, proto.BUY, fmt.Sprintf("%v", amountRate), fmt.Sprintf("%v", price*1.5))
+	if err == nil {
+		return order, err
+	} else {
+		if isRetry {
+			return h.retryDeal(bou.bourse, proto.BUY, fmt.Sprintf("%v", amountRate), fmt.Sprintf("%v", price*1.5))
+		}
+		return nil, fmt.Errorf("sell err")
+	}
 }
 
-func (h *Hedge) retryBuy(bou bourse.Bourse, side, amount, price string) (*proto.Order, error) {
+func (h *Hedge) sell(bou bourse.Bourse, amount, price float64, isRetry bool) (*proto.Order, error) {
+	order, err := h.deal(bou, proto.SELL, fmt.Sprintf("%v", amount), fmt.Sprintf("%v", price*0.5))
+	if err == nil {
+		return order, err
+	} else {
+		if isRetry {
+			return h.retryDeal(bou, proto.SELL, fmt.Sprintf("%v", amount), fmt.Sprintf("%v", price*0.5))
+		}
+		return nil, fmt.Errorf("sell err")
+	}
+}
+
+func (h *Hedge) retryDeal(bou bourse.Bourse, side, amount, price string) (*proto.Order, error) {
 	sec := rand.Intn(10)
 	if sec == 0 {
 		sec = 1
@@ -331,15 +320,24 @@ func (h *Hedge) retryBuy(bou bourse.Bourse, side, amount, price string) (*proto.
 		if order, err := h.deal(bou, side, amount, price); err == nil {
 			return order, err
 		} else {
-			log.Errorf("retry err %v", err)
+			log.Errorf("%s retry %s err %v", strings.ToUpper(h.coin), side, err)
 		}
-		log.Debug("retryDeal sleep:", sec)
+		log.Debug(strings.ToUpper(h.coin), "retryDeal sleep:", sec)
 		time.Sleep(time.Duration(sec) * time.Millisecond)
 		sec = sec << 1
 		if sec > 40 {
 			return nil, fmt.Errorf("retry %s err", side)
 		}
 	}
+}
+
+func (h *Hedge) deal(bou bourse.Bourse, side, amount, price string) (*proto.Order, error) {
+	if side == proto.SELL {
+		return bou.Sell(amount, price, mypro.ConvertCurrencyPair(h.coin))
+	} else if side == proto.BUY {
+		return bou.Buy(amount, price, mypro.ConvertCurrencyPair(h.coin))
+	}
+	return nil, fmt.Errorf("err side:%s", side)
 }
 
 func (h *Hedge) Stop() error {

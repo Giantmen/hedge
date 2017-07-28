@@ -10,8 +10,10 @@ import (
 
 	"github.com/Giantmen/trader/bourse"
 	"github.com/Giantmen/trader/bourse/btctrade"
+	"github.com/Giantmen/trader/bourse/bter"
 	"github.com/Giantmen/trader/bourse/chbtc"
-	"github.com/Giantmen/trader/bourse/huobi"
+	"github.com/Giantmen/trader/bourse/huobiN"
+	"github.com/Giantmen/trader/bourse/huobiO"
 	"github.com/Giantmen/trader/bourse/yunbi"
 	"github.com/Giantmen/trader/proto"
 )
@@ -23,7 +25,7 @@ type Service struct {
 func NewService(cfg *config.Config) (*Service, error) {
 	var bourses = make(map[string]bourse.Bourse)
 	for _, c := range cfg.Yunbi {
-		if yunbi, err := yunbi.NewYunBi(c.Accesskey, c.Secretkey, c.Timeout); err != nil {
+		if yunbi, err := yunbi.NewYunbi(c.Accesskey, c.Secretkey, c.Timeout); err != nil {
 			return nil, err
 		} else {
 			bourses[strings.ToUpper(c.Name)] = yunbi
@@ -46,11 +48,27 @@ func NewService(cfg *config.Config) (*Service, error) {
 		}
 	}
 
-	for _, c := range cfg.Huobi {
-		if huobi, err := huobi.NewHuobi(c.Accountid, c.Accesskey, c.Secretkey, c.Timeout); err != nil {
+	for _, c := range cfg.HuobiN {
+		if huobin, err := huobiN.NewHuobi(c.Accountid, c.Accesskey, c.Secretkey, c.Timeout); err != nil {
 			return nil, err
 		} else {
-			bourses[strings.ToUpper(c.Name)] = huobi
+			bourses[strings.ToUpper(c.Name)] = huobin
+		}
+	}
+
+	for _, c := range cfg.HuobiO {
+		if huobio, err := huobiO.NewHuobi(c.Accountid, c.Accesskey, c.Secretkey, c.Timeout); err != nil {
+			return nil, err
+		} else {
+			bourses[strings.ToUpper(c.Name)] = huobio
+		}
+	}
+
+	for _, c := range cfg.Bter {
+		if bter, err := bter.NewBter(c.Accesskey, c.Secretkey, c.Timeout); err != nil {
+			return nil, err
+		} else {
+			bourses[strings.ToUpper(c.Name)] = bter
 		}
 	}
 
