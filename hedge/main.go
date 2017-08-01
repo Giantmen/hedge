@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	cfgPath = flag.String("config", "config.toml", "config file path")
+	cfgPath = flag.String("config", ".config.toml", "config file path")
 )
 
 func initLog(cfg *config.Config) {
