@@ -43,8 +43,6 @@ func main() {
 	if err != nil {
 		log.Error("NewService err", err)
 	}
-	gozilla.RegisterService(bourse, "trader")
-	log.Debug("register", "bourse")
 
 	rule, err := judge.NewJudge(&cfg, bourse)
 	if err != nil {

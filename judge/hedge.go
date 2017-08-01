@@ -104,12 +104,12 @@ func NewHedge(cfg *config.Judge, sr *store.Service) (*Hedge, error) {
 		bourseA: account{
 			name:   bourseNameA,
 			bourse: bourseA,
-			fee:    mypro.ConvertFee(fmt.Sprintf("%s_%s", bourseNameA, coin)),
+			fee:    proto.ConvertFee(fmt.Sprintf("%s_%s", bourseNameA, coin)),
 		},
 		bourseB: account{
 			name:   bourseNameB,
 			bourse: bourseB,
-			fee:    mypro.ConvertFee(fmt.Sprintf("%s_%s", bourseNameB, coin)),
+			fee:    proto.ConvertFee(fmt.Sprintf("%s_%s", bourseNameB, coin)),
 		},
 	}, nil
 }
