@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	"github.com/Giantmen/hedge/config"
-	"github.com/Giantmen/hedge/log"
 	"github.com/Giantmen/hedge/proto"
 	"github.com/Giantmen/hedge/store"
 
+	"github.com/golang/glog"
 	"github.com/solomoner/gozilla"
 )
 
@@ -24,6 +24,7 @@ type Processer interface {
 	SetTicker(ticker int) string
 	SetFirst(first string) string
 	GetConfig() *proto.ConfigReply
+	GetIncome() *proto.Income
 }
 
 type Judge struct {
@@ -34,17 +35,82 @@ func NewJudge(cfg *config.Config, sr *store.Service) (*Judge, error) {
 	var judges = make(map[string]Processer)
 	for _, c := range cfg.Judge {
 		switch c.Name {
-		case "etc_btctrade_chbtc":
-			if etc_btctrade_chbtc, err := NewHedge(&c, sr); err != nil {
+		case "etc_chbtc_huobiN":
+			if etc_chbtc_huobiN, err := NewHedge(&c, sr); err != nil {
 				return nil, err
 			} else {
-				judges[strings.ToUpper(c.Name)] = etc_btctrade_chbtc
+				judges[strings.ToUpper(c.Name)] = etc_chbtc_huobiN
 			}
-		case "eth_btctrade_chbtc":
-			if eth_btctrade_chbtc, err := NewHedge(&c, sr); err != nil {
+
+		case "eth_chbtc_huobiN":
+			if eth_chbtc_huobiN, err := NewHedge(&c, sr); err != nil {
 				return nil, err
 			} else {
-				judges[strings.ToUpper(c.Name)] = eth_btctrade_chbtc
+				judges[strings.ToUpper(c.Name)] = eth_chbtc_huobiN
+			}
+
+		case "snt_yunbi_bter":
+			if snt_yunbi_bter, err := NewHedge(&c, sr); err != nil {
+				return nil, err
+			} else {
+				judges[strings.ToUpper(c.Name)] = snt_yunbi_bter
+			}
+
+		case "omg_yunbi_bter":
+			if omg_yunbi_bter, err := NewHedge(&c, sr); err != nil {
+				return nil, err
+			} else {
+				judges[strings.ToUpper(c.Name)] = omg_yunbi_bter
+			}
+
+		case "pay_yunbi_bter":
+			if pay_yunbi_bter, err := NewHedge(&c, sr); err != nil {
+				return nil, err
+			} else {
+				judges[strings.ToUpper(c.Name)] = pay_yunbi_bter
+			}
+
+			//etc
+		case "etc_chbtc_bter":
+			if etc_chbtc_bter, err := NewHedge(&c, sr); err != nil {
+				return nil, err
+			} else {
+				judges[strings.ToUpper(c.Name)] = etc_chbtc_bter
+			}
+
+		case "etc_yunbi_chbtc":
+			if etc_yunbi_chbtc, err := NewHedge(&c, sr); err != nil {
+				return nil, err
+			} else {
+				judges[strings.ToUpper(c.Name)] = etc_yunbi_chbtc
+			}
+		case "etc_yunbi_bter":
+			if etc_yunbi_bter, err := NewHedge(&c, sr); err != nil {
+				return nil, err
+			} else {
+				judges[strings.ToUpper(c.Name)] = etc_yunbi_bter
+			}
+
+			//eos
+		case "eos_chbtc_bter":
+			if eos_chbtc_bter, err := NewHedge(&c, sr); err != nil {
+				return nil, err
+			} else {
+				judges[strings.ToUpper(c.Name)] = eos_chbtc_bter
+			}
+
+		case "eos_yunbi_chbtc":
+			if eos_yunbi_chbtc, err := NewHedge(&c, sr); err != nil {
+				return nil, err
+			} else {
+				judges[strings.ToUpper(c.Name)] = eos_yunbi_chbtc
+			}
+
+		case "eos_yunbi_bter":
+			if eos_yunbi_bter, err := NewHedge(&c, sr); err != nil {
+				return nil, err
+			} else {
+				judges[strings.ToUpper(c.Name)] = eos_yunbi_bter
 			}
 		}
 	}
@@ -57,25 +123,25 @@ func NewJudge(cfg *config.Config, sr *store.Service) (*Judge, error) {
 func (j *Judge) Process() {
 	for name, judge := range j.judges {
 		go judge.Process()
-		log.Info("judge", name, "start", "ok")
+		glog.Infoln("judge", name, "start", "ok")
 	}
 }
 
 func (j *Judge) StopAll() {
 	for name, judge := range j.judges {
 		judge.Stop()
-		log.Info("judge", name, "stop", "ok")
+		glog.Infoln("judge", name, "stop", "ok")
 	}
 }
 
 func (j *Judge) Start(ctx *gozilla.Context, r *proto.JudgeQuery) (string, error) {
 	ju, ok := j.judges[strings.ToUpper(r.Judge)]
 	if !ok {
-		log.Errorf("get %s err", r.Judge)
+		glog.Errorf("get %s err", r.Judge)
 		return "", fmt.Errorf("get %s err", r.Judge)
 	}
 	if ju.Status() {
-		log.Errorf("%s is already start", r.Judge)
+		glog.Errorf("%s is already start", r.Judge)
 		return "", fmt.Errorf("%s is already start", r.Judge)
 	} else {
 		go ju.Process()
@@ -86,11 +152,11 @@ func (j *Judge) Start(ctx *gozilla.Context, r *proto.JudgeQuery) (string, error)
 func (j *Judge) Stop(ctx *gozilla.Context, r *proto.JudgeQuery) (string, error) {
 	ju, ok := j.judges[strings.ToUpper(r.Judge)]
 	if !ok {
-		log.Errorf("get %s err", r.Judge)
+		glog.Errorf("get %s err", r.Judge)
 		return "", fmt.Errorf("get %s err", r.Judge)
 	}
 	if !ju.Status() {
-		log.Errorf("%s is already stop", r.Judge)
+		glog.Errorf("%s is already stop", r.Judge)
 		return "", fmt.Errorf("%s is already stop", r.Judge)
 	} else {
 		go ju.Stop()
@@ -101,7 +167,7 @@ func (j *Judge) Stop(ctx *gozilla.Context, r *proto.JudgeQuery) (string, error) 
 func (j *Judge) Status(ctx *gozilla.Context, r *proto.JudgeQuery) (bool, error) {
 	ju, ok := j.judges[strings.ToUpper(r.Judge)]
 	if !ok {
-		log.Errorf("get %s err", r.Judge)
+		glog.Errorf("get %s err", r.Judge)
 		return false, fmt.Errorf("get %s err", r.Judge)
 	}
 	return ju.Status(), nil
@@ -110,17 +176,17 @@ func (j *Judge) Status(ctx *gozilla.Context, r *proto.JudgeQuery) (bool, error) 
 func (j *Judge) SetHuidu(ctx *gozilla.Context, r *proto.HuiduQuery) (bool, error) {
 	ju, ok := j.judges[strings.ToUpper(r.Judge)]
 	if !ok {
-		log.Errorf("get %s err", r.Judge)
+		glog.Errorf("get %s err", r.Judge)
 		return false, fmt.Errorf("get %s err", r.Judge)
 	}
-	log.Debug("huidu", r.Judge, r.Value)
+	glog.Infoln("huidu", r.Judge, r.Value)
 	return ju.SetHuidu(r.Value), nil
 }
 
 func (j *Judge) SetDepth(ctx *gozilla.Context, r *proto.ConfigQuery) (float64, error) {
 	ju, ok := j.judges[strings.ToUpper(r.Judge)]
 	if !ok {
-		log.Errorf("get %s err", r.Judge)
+		glog.Errorf("get %s err", r.Judge)
 		return 0, fmt.Errorf("get %s err", r.Judge)
 	}
 	return ju.SetDepth(r.Value), nil
@@ -129,7 +195,7 @@ func (j *Judge) SetDepth(ctx *gozilla.Context, r *proto.ConfigQuery) (float64, e
 func (j *Judge) SetAmount(ctx *gozilla.Context, r *proto.ConfigQuery) (float64, error) {
 	ju, ok := j.judges[strings.ToUpper(r.Judge)]
 	if !ok {
-		log.Errorf("get %s err", r.Judge)
+		glog.Errorf("get %s err", r.Judge)
 		return 0, fmt.Errorf("get %s err", r.Judge)
 	}
 	return ju.SetAmount(r.Value), nil
@@ -138,7 +204,7 @@ func (j *Judge) SetAmount(ctx *gozilla.Context, r *proto.ConfigQuery) (float64, 
 func (j *Judge) SetRightEarn(ctx *gozilla.Context, r *proto.ConfigQuery) (float64, error) {
 	ju, ok := j.judges[strings.ToUpper(r.Judge)]
 	if !ok {
-		log.Errorf("get %s err", r.Judge)
+		glog.Errorf("get %s err", r.Judge)
 		return 0, fmt.Errorf("get %s err", r.Judge)
 	}
 	return ju.SetRightEarn(r.Value), nil
@@ -147,7 +213,7 @@ func (j *Judge) SetRightEarn(ctx *gozilla.Context, r *proto.ConfigQuery) (float6
 func (j *Judge) SetLeftEarn(ctx *gozilla.Context, r *proto.ConfigQuery) (float64, error) {
 	ju, ok := j.judges[strings.ToUpper(r.Judge)]
 	if !ok {
-		log.Errorf("get %s err", r.Judge)
+		glog.Errorf("get %s err", r.Judge)
 		return 0, fmt.Errorf("get %s err", r.Judge)
 	}
 	return ju.SetLeftEarn(r.Value), nil
@@ -156,7 +222,7 @@ func (j *Judge) SetLeftEarn(ctx *gozilla.Context, r *proto.ConfigQuery) (float64
 func (j *Judge) SetTicker(ctx *gozilla.Context, r *proto.ConfigQuery) (string, error) {
 	ju, ok := j.judges[strings.ToUpper(r.Judge)]
 	if !ok {
-		log.Errorf("get %s err", r.Judge)
+		glog.Errorf("get %s err", r.Judge)
 		return "", fmt.Errorf("get %s err", r.Judge)
 	}
 	if int(r.Value) < 1 {
@@ -168,7 +234,7 @@ func (j *Judge) SetTicker(ctx *gozilla.Context, r *proto.ConfigQuery) (string, e
 func (j *Judge) SetFirst(ctx *gozilla.Context, r *proto.FirstQuery) (string, error) {
 	ju, ok := j.judges[strings.ToUpper(r.Judge)]
 	if !ok {
-		log.Errorf("get %s err", r.Judge)
+		glog.Errorf("get %s err", r.Judge)
 		return "", fmt.Errorf("get %s err", r.Judge)
 	}
 	return ju.SetFirst(r.Value), nil
@@ -177,8 +243,17 @@ func (j *Judge) SetFirst(ctx *gozilla.Context, r *proto.FirstQuery) (string, err
 func (j *Judge) GetConfig(ctx *gozilla.Context, r *proto.JudgeQuery) (*proto.ConfigReply, error) {
 	ju, ok := j.judges[strings.ToUpper(r.Judge)]
 	if !ok {
-		log.Errorf("get %s err", r.Judge)
+		glog.Errorf("get %s err", r.Judge)
 		return nil, fmt.Errorf("get %s err", r.Judge)
 	}
 	return ju.GetConfig(), nil
+}
+
+func (j *Judge) GetIncome(ctx *gozilla.Context, r *proto.JudgeQuery) (*proto.Income, error) {
+	ju, ok := j.judges[strings.ToUpper(r.Judge)]
+	if !ok {
+		glog.Errorf("get %s err", r.Judge)
+		return nil, fmt.Errorf("get %s err", r.Judge)
+	}
+	return ju.GetIncome(), nil
 }

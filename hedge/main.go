@@ -4,13 +4,14 @@ import (
 	"flag"
 	"fmt"
 	stdlog "log"
+	"time"
 
 	"github.com/Giantmen/hedge/config"
 	"github.com/Giantmen/hedge/judge"
-	"github.com/Giantmen/hedge/log"
 	"github.com/Giantmen/hedge/store"
 
 	"github.com/BurntSushi/toml"
+	"github.com/golang/glog"
 	"github.com/solomoner/gozilla"
 )
 
@@ -18,30 +19,25 @@ var (
 	cfgPath = flag.String("config", ".config.toml", "config file path")
 )
 
-func initLog(cfg *config.Config) {
-	log.SetLevelByString(cfg.LogLevel)
-	if !cfg.Debug {
-		log.SetHighlighting(false)
-		err := log.SetOutputByName(cfg.LogPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-		log.SetRotateByDay()
+func flushLog() {
+	for {
+		glog.Flush()
+		time.Sleep(2 * time.Second)
 	}
 }
 
 func main() {
 	flag.Parse()
+	go flushLog()
 	var cfg config.Config
 	_, err := toml.DecodeFile(*cfgPath, &cfg)
 	if err != nil {
 		stdlog.Fatal("DecodeConfigFile error: ", err)
 	}
-	initLog(&cfg)
 
 	bourse, err := store.NewService(&cfg)
 	if err != nil {
-		log.Error("NewService err", err)
+		glog.Errorln("NewService err", err)
 	}
 
 	rule, err := judge.NewJudge(&cfg, bourse)
@@ -49,7 +45,7 @@ func main() {
 		panic(fmt.Sprintf("NewJudge err %v", err))
 	}
 	gozilla.RegisterService(rule, "judge")
-	log.Debug("register", "judge")
+	glog.Infoln("register", "judge")
 	rule.Process()
 	defer rule.StopAll()
 

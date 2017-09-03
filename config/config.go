@@ -17,6 +17,7 @@ type Judge struct {
 	Rightearn string
 	Leftearn  string
 	Huidu     bool
+	Income    string
 }
 
 type Config struct {

@@ -24,6 +24,10 @@ func ConvertCurrencyPair(currency string) string {
 		return proto.EOS_CNY
 	case proto.SNT:
 		return proto.SNT_CNY
+	case proto.OMG:
+		return proto.OMG_CNY
+	case proto.PAY:
+		return proto.PAY_CNY
 	}
 	return ""
 }
@@ -55,4 +59,9 @@ type ConfigReply struct {
 	Amount    float64
 	RightEarn float64
 	LeftEarn  float64
+}
+
+type Income struct {
+	All float64 `json:"All"`
+	Cur float64 `json:"Today"`
 }
